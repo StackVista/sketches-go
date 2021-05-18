@@ -6,7 +6,14 @@
 package store
 
 import (
+	"errors"
+
 	"github.com/DataDog/sketches-go/ddsketch/pb/sketchpb"
+)
+
+var (
+	errUndefinedMinIndex = errors.New("MinIndex of empty store is undefined")
+	errUndefinedMaxIndex = errors.New("MaxIndex of empty store is undefined")
 )
 
 type Store interface {
