@@ -10,7 +10,7 @@ import (
 	"math"
 
 	"github.com/DataDog/sketches-go/ddsketch/mapping"
-	"github.com/DataDog/sketches-go/ddsketch/pb/sketchpb"
+	sketchpb "github.com/DataDog/sketches-go/ddsketch/pb"
 	"github.com/DataDog/sketches-go/ddsketch/store"
 )
 

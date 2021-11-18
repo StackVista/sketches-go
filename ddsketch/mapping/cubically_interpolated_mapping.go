@@ -11,7 +11,7 @@ import (
 	"fmt"
 	"math"
 
-	"github.com/DataDog/sketches-go/ddsketch/pb/sketchpb"
+	sketchpb "github.com/DataDog/sketches-go/ddsketch/pb"
 )
 
 const (
