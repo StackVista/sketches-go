@@ -5,9 +5,7 @@
 
 package store
 
-import (
-	"github.com/DataDog/sketches-go/ddsketch/pb/sketchpb"
-)
+import sketchpb "github.com/DataDog/sketches-go/ddsketch/proto"
 
 type Store interface {
 	Add(index int)
