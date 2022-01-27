@@ -11,7 +11,7 @@ import (
 	"testing"
 
 	"github.com/DataDog/sketches-go/dataset"
-	sketchpb "github.com/DataDog/sketches-go/ddsketch/pb"
+	"github.com/DataDog/sketches-go/ddsketch/pb/sketchpb"
 
 	"github.com/golang/protobuf/proto"
 	fuzz "github.com/google/gofuzz"

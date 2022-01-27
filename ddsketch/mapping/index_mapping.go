@@ -7,7 +7,8 @@ package mapping
 
 import (
 	"fmt"
-	sketchpb "github.com/DataDog/sketches-go/ddsketch/pb"
+
+	"github.com/DataDog/sketches-go/ddsketch/pb/sketchpb"
 )
 
 const (
