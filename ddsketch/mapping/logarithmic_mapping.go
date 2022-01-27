@@ -11,7 +11,7 @@ import (
 	"fmt"
 	"math"
 
-	sketchpb "github.com/DataDog/sketches-go/ddsketch/proto"
+	sketchpb "github.com/StackVista/sketches-go/ddsketch/proto"
 )
 
 // An IndexMapping that is memory-optimal, that is to say that given a targeted relative accuracy, it

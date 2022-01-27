@@ -11,7 +11,7 @@ import (
 	"fmt"
 	"math"
 
-	sketchpb "github.com/DataDog/sketches-go/ddsketch/proto"
+	sketchpb "github.com/StackVista/sketches-go/ddsketch/proto"
 )
 
 // A fast IndexMapping that approximates the memory-optimal LogarithmicMapping by extracting the floor value
