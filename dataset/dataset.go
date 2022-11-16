@@ -1,13 +1,15 @@
 // Unless explicitly stated otherwise all files in this repository are licensed
 // under the Apache License 2.0.
 // This product includes software developed at Datadog (https://www.datadoghq.com/).
-// Copyright 2018 Datadog, Inc.
+// Copyright 2021 Datadog, Inc.
 
 package dataset
 
 import (
 	"math"
 	"sort"
+
+	"github.com/DataDog/sketches-go/ddsketch/stat"
 )
 
 type Dataset struct {
@@ -35,7 +37,7 @@ func (d *Dataset) LowerQuantile(q float64) float64 {
 	}
 
 	d.sort()
-	rank := q * float64(d.Count-1)
+	rank := q * (d.Count - 1)
 	return d.Values[int(math.Floor(rank))]
 }
 
@@ -45,7 +47,7 @@ func (d *Dataset) UpperQuantile(q float64) float64 {
 	}
 
 	d.sort()
-	rank := q * float64(d.Count-1)
+	rank := q * (d.Count - 1)
 	return d.Values[int(math.Ceil(rank))]
 }
 
@@ -57,6 +59,14 @@ func (d *Dataset) Min() float64 {
 func (d *Dataset) Max() float64 {
 	d.sort()
 	return d.Values[len(d.Values)-1]
+}
+
+func (d *Dataset) Sum() float64 {
+	summaryStatistics := stat.NewSummaryStatistics()
+	for _, v := range d.Values {
+		summaryStatistics.Add(v, 1)
+	}
+	return summaryStatistics.Sum()
 }
 
 func (d *Dataset) Merge(o *Dataset) {

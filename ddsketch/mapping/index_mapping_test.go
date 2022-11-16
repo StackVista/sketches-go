@@ -1,11 +1,12 @@
 // Unless explicitly stated otherwise all files in this repository are licensed
 // under the Apache License 2.0.
 // This product includes software developed at Datadog (https://www.datadoghq.com/).
-// Copyright 2020 Datadog, Inc.
+// Copyright 2021 Datadog, Inc.
 
 package mapping
 
 import (
+	"github.com/DataDog/sketches-go/ddsketch/encoding"
 	"math"
 	"testing"
 
@@ -16,9 +17,19 @@ const (
 	testMaxRelativeAccuracy      = 1 - 1e-3
 	testMinRelativeAccuracy      = 1e-7
 	floatingPointAcceptableError = 1e-12
+	multiplier                   = 1 + math.Sqrt2*1e2
 )
 
-var multiplier = 1 + math.Sqrt(2)*1e2
+type testCase struct {
+	name                 string
+	fromRelativeAccuracy func(relAcc float64) (IndexMapping, error)
+}
+
+var testCases = []testCase{
+	{name: "Logarithmic", fromRelativeAccuracy: func(relAcc float64) (IndexMapping, error) { return NewLogarithmicMapping(relAcc) }},
+	{name: "LinearlyInterpolated", fromRelativeAccuracy: func(relAcc float64) (IndexMapping, error) { return NewLinearlyInterpolatedMapping(relAcc) }},
+	{name: "CubicallyInterpolated", fromRelativeAccuracy: func(relAcc float64) (IndexMapping, error) { return NewCubicallyInterpolatedMapping(relAcc) }},
+}
 
 func TestLogarithmicMappingEquivalence(t *testing.T) {
 	relativeAccuracy := 0.01
@@ -64,24 +75,30 @@ func EvaluateMappingAccuracy(t *testing.T, mapping IndexMapping, relativeAccurac
 	EvaluateRelativeAccuracy(t, value, mappedValue, relativeAccuracy)
 }
 
-func TestLogarithmicMappingAccuracy(t *testing.T) {
-	for relativeAccuracy := testMaxRelativeAccuracy; relativeAccuracy >= testMinRelativeAccuracy; relativeAccuracy *= (testMaxRelativeAccuracy * testMaxRelativeAccuracy) {
-		mapping, _ := NewLogarithmicMapping(relativeAccuracy)
-		EvaluateMappingAccuracy(t, mapping, relativeAccuracy)
+func TestMappingAccuracy(t *testing.T) {
+	for _, testCase := range testCases {
+		t.Run(testCase.name, func(t *testing.T) {
+			for relativeAccuracy := testMaxRelativeAccuracy; relativeAccuracy >= testMinRelativeAccuracy; relativeAccuracy *= testMaxRelativeAccuracy {
+				mapping, _ := testCase.fromRelativeAccuracy(relativeAccuracy)
+				EvaluateMappingAccuracy(t, mapping, relativeAccuracy)
+			}
+		})
 	}
 }
 
-func TestLinearlyInterpolatedMappingAccuracy(t *testing.T) {
-	for relativeAccuracy := testMaxRelativeAccuracy; relativeAccuracy >= testMinRelativeAccuracy; relativeAccuracy *= (testMaxRelativeAccuracy * testMaxRelativeAccuracy) {
-		mapping, _ := NewLinearlyInterpolatedMapping(relativeAccuracy)
-		EvaluateMappingAccuracy(t, mapping, relativeAccuracy)
-	}
-}
-
-func TestCubicallyInterpolatedMappingAccuracy(t *testing.T) {
-	for relativeAccuracy := testMaxRelativeAccuracy; relativeAccuracy >= testMinRelativeAccuracy; relativeAccuracy *= (testMaxRelativeAccuracy * testMaxRelativeAccuracy) {
-		mapping, _ := NewCubicallyInterpolatedMapping(relativeAccuracy)
-		EvaluateMappingAccuracy(t, mapping, relativeAccuracy)
+func TestLowerBound(t *testing.T) {
+	testIndexes := []int{2, 10, 25, 100, 10000}
+	logMapping, _ := NewLogarithmicMapping(0.01)
+	linearMapping, _ := NewLinearlyInterpolatedMapping(0.01)
+	cubicalMapping, _ := NewCubicallyInterpolatedMapping(0.01)
+	for _, mapping := range []IndexMapping{logMapping, linearMapping, cubicalMapping} {
+		for _, i := range testIndexes {
+			lowerBound := mapping.LowerBound(i)
+			previous := mapping.Value(i - 1)
+			next := mapping.Value(i)
+			assert.GreaterOrEqual(t, lowerBound, previous)
+			assert.GreaterOrEqual(t, next, lowerBound)
+		}
 	}
 }
 
@@ -90,4 +107,24 @@ func TestSerialization(t *testing.T) {
 	deserializedMapping, err := FromProto(m.ToProto())
 	assert.Nil(t, err)
 	assert.True(t, m.Equals(deserializedMapping))
+}
+
+func TestEncodeDecodeEquality(t *testing.T) {
+	for _, testCase := range testCases {
+		t.Run(testCase.name, func(t *testing.T) {
+			for relativeAccuracy := testMaxRelativeAccuracy; relativeAccuracy >= testMinRelativeAccuracy; relativeAccuracy *= testMaxRelativeAccuracy {
+				mapping, err := testCase.fromRelativeAccuracy(relativeAccuracy)
+				assert.NoError(t, err)
+
+				var b []byte
+				mapping.Encode(&b)
+
+				flag, err := encoding.DecodeFlag(&b)
+				assert.NoError(t, err)
+				decoded, err := Decode(&b, flag)
+
+				assert.Equal(t, mapping, decoded)
+			}
+		})
+	}
 }
